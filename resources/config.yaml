@@ -1,0 +1,10 @@
+host: sup.symphony.com
+
+ssl:
+  trustStore:
+    path: resources/all_symphony_certs.pem
+
+bot:
+  username: NirbheysBot
+  privateKey:
+    path: rsa/privatekey.pem

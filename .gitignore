@@ -1,0 +1,14 @@
+# Editors
+.vscode/
+.idea/
+
+# Mac/OSX
+.DS_Store
+
+rsa/
+env/
+bdk.log
+datafeed.id
+**/__pycache__
+resources/jira.yaml
+src/auth/rsa/

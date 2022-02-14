@@ -1,0 +1,9 @@
+symphony-bdk-python>=2.1.0
+Jinja2~=3.0
+ecdsa==0.17.0
+httplib2==0.20.4
+oauth2==1.9.0.post1
+pycrypto==2.6.1
+pyparsing==3.0.7
+six==1.16.0
+tlslite-ng==0.7.6
