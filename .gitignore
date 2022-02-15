@@ -11,4 +11,5 @@ bdk.log
 datafeed.id
 **/__pycache__
 resources/jira.yaml
+src/auth/jira.yaml
 src/auth/rsa/

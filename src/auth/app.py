@@ -2,6 +2,7 @@ import base64
 import urllib
 from tlslite.utils import keyfactory
 import oauth2 as oauth
+import yaml
 
 class SignatureMethod_RSA_SHA1(oauth.SignatureMethod):
     name = 'RSA-SHA1'
@@ -35,20 +36,45 @@ class SignatureMethod_RSA_SHA1(oauth.SignatureMethod):
 
         return base64.b64encode(signature)
 
+def jira_parameters():
+    config_file = open('jira.yaml', 'r')
+    config_content = yaml.safe_load(config_file)
+
+    return {
+        "consumer_key" : config_content["consumer_key"],
+        "consumer_secret": config_content["consumer_secret"],
+        "jira_base_url": config_content["jira_base_url"]
+    }
 
 
 if __name__ == "__main__":
-    consumer_key = '{{consumer_key}}'
-    consumer_secret = '{{consumer_secret}}'
 
-    request_token_url = 'https://{{HOST}}/plugins/servlet/oauth/request-token'
-    access_token_url = 'https://{{HOST}}//plugins/servlet/oauth/access-token'
-    authorize_url = 'https://{{HOST}}//plugins/servlet/oauth/authorize'
+    # Config function
+    jira_config = jira_parameters()
 
-    data_url = 'https://{{HOST}}/rest/api/2/issue/ESS-1'
+    consumer_key = jira_config["consumer_key"]
+    consumer_secret = jira_config["consumer_secret"]
+    jira_base_url = jira_config["jira_base_url"]
+
+    print ("consumer_key: " + consumer_key  + "\n\t type:" + str(type(consumer_key)))
+    print ("consumer_secret: " + consumer_secret + "\n\t type:" + str(type(consumer_secret)))
+    print ("jira_base_url: " + jira_base_url)
+
+    request_token_url = F'https://{jira_base_url}/plugins/servlet/oauth/request-token'
+    access_token_url = F'https://{jira_base_url}/plugins/servlet/oauth/access-token'
+    authorize_url = F'https://{jira_base_url}/plugins/servlet/oauth/authorize'
+    data_url = F'https://{jira_base_url}/rest/api/2/issue/ESS-1'
+
+    # request_token_url = 'https://{0}/plugins/servlet/oauth/request-token'.format(jira_base_url)
+    # access_token_url = 'https://{0}/plugins/servlet/oauth/access-token'.format(jira_base_url)
+    # authorize_url = 'https://{0}/plugins/servlet/oauth/authorize'.format(jira_base_url)
+    # data_url = 'https://{0}/rest/api/2/issue/ESS-1'.format(jira_base_url)
 
     consumer = oauth.Consumer(consumer_key, consumer_secret)
     client = oauth.Client(consumer)
+
+    print("Consumer string: " + str(consumer) + "\n\t type:" + str(type(consumer)))
+    print("Client string: " + str(client) + "\n\t type:" + str(type(client)))
 
     # Lets try to access a JIRA issue (ESS-1). We should get a 401.
     # Checked via browser, seems to respond 404 when you don't have permission, odd but I'll change the code to pass this test
@@ -56,16 +82,16 @@ if __name__ == "__main__":
     if resp['status'] != '404':
         raise Exception(resp['status'] + ": Should have no access!")
 
-    consumer = oauth.Consumer(consumer_key, consumer_secret)
-    client = oauth.Client(consumer)
+    # consumer = oauth.Consumer(consumer_key, consumer_secret)
+    # client = oauth.Client(consumer)
     client.set_signature_method(SignatureMethod_RSA_SHA1())
 
     # Step 1: Get a request token. This is a temporary token that is used for
     # having the user authorize an access token and to sign the request to obtain
     # said access token.
 
+    print ("request_token_url: " + request_token_url + '\n')
     resp, content = client.request(request_token_url, "POST")
-    # print (request_token_url)
     if resp['status'] != '200':
         raise Exception("Invalid response %s: %s" % (resp['status'],  content))
 

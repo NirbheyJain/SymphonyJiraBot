@@ -1,4 +1,4 @@
-symphony-bdk-python>=2.1.0
+symphony-bdk-python>=2.2.0
 Jinja2~=3.0
 ecdsa==0.17.0
 httplib2==0.20.4
