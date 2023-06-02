@@ -2,6 +2,7 @@
 import asyncio
 import logging.config
 from pathlib import Path
+from urllib import response
 
 from symphony.bdk.core.activity.command import CommandContext
 from symphony.bdk.core.config.loader import BdkConfigLoader
@@ -10,8 +11,10 @@ from symphony.bdk.core.symphony_bdk import SymphonyBdk
 from symphony.bdk.gen.agent_model.v4_initiator import V4Initiator
 from symphony.bdk.gen.agent_model.v4_message_sent import V4MessageSent
 
-from .activities import EchoCommandActivity, GreetUserJoinedActivity
-from .gif_activities import GifSlashCommand, GifFormReplyActivity
+from activities import EchoCommandActivity, GreetUserJoinedActivity
+from gif_activities import GifSlashCommand, GifFormReplyActivity
+
+from auth.app import *
 
 # Configure logging
 current_dir = Path(__file__).parent.parent
@@ -38,6 +41,13 @@ async def run():
             response = f"<messageML>Hello {name}, hope you are doing well!</messageML>"
             await bdk.messages().send_message(context.stream_id, response)
 
+        @activities.slash("/setup")
+        async def setup(context: CommandContext):
+            name = context.initiator.user.display_name
+            print(str(jira_parameters()))
+            response = f"<messageML>foo</messageML>"
+            await bdk.messages().send_message(context.stream_id, response)
+
         # Start the datafeed read loop
         await datafeed_loop.start()
 
@@ -45,7 +55,7 @@ async def run():
 class MessageListener(RealTimeEventListener):
     async def on_message_sent(self, initiator: V4Initiator, event: V4MessageSent):
         logging.debug("Message received from %s: %s",
-            initiator.user.display_name, event.message.message)
+                      initiator.user.display_name, event.message.message)
 
 
 # Start the main asyncio run

@@ -1,10 +1,14 @@
 host: sup.symphony.com
 
-ssl:
-  trustStore:
-    path: resources/all_symphony_certs.pem
-
 bot:
   username: NirbheysBot
   privateKey:
     path: rsa/privatekey.pem
+
+keyManager:
+  host: sup-km.symphony.com
+  port: 443
+
+agent:
+  host: sup-agent.symphony.com
+  port: 443

@@ -50,6 +50,103 @@ def jira_parameters():
         "jira_base_url": config_content["jira_base_url"]
     }
 
+def create_client(config_parameters):
+    consumer_key = config_parameters["consumer_key"]
+    consumer_secret = config_parameters["consumer_secret"]
+
+    consumer = oauth.Consumer(consumer_key, consumer_secret)
+    client = oauth.Client(consumer)
+
+    # Lets try to access a JIRA issue (ESS-1). We should get a 401.
+    # Checked via browser, seems to respond 404 when you don't have permission, odd but I'll change the code to pass this test
+    resp, content = client.request(data_url, "GET")
+    if resp['status'] != '404':
+        raise Exception(resp['status'] + ": Should have no access!")
+
+    client.set_signature_method(SignatureMethod_RSA_SHA1())
+
+    return client
+
+def request_token(config_parameters, client):
+    jira_base_url = config_parameters["jira_base_url"]
+
+    request_token_url = F'https://{jira_base_url}/plugins/servlet/oauth/request-token'
+
+    # Step 1: Get a request token. This is a temporary token that is used for
+    # having the user authorize an access token and to sign the request to obtain
+    # said access token.
+
+    # print("request_token_url: " + request_token_url + '\n')
+    resp, content = client.request(request_token_url, "POST")
+    if resp['status'] != '200':
+        raise Exception("Invalid response %s: %s" % (resp['status'], content))
+
+    request_token = dict((urllib.parse.parse_qsl(content)))
+    request_token = {y.decode('ascii'): request_token.get(y).decode('ascii') for y in request_token.keys()}
+
+    return request_token
+
+def auth_url(config_parameters, request_token):
+    jira_base_url = config_parameters["jira_base_url"]
+    authorize_url = F'https://{jira_base_url}/plugins/servlet/oauth/authorize'
+
+    print("Request Token:")
+    print("    - oauth_token        = %s" % request_token['oauth_token'])
+    print("    - oauth_token_secret = %s" % request_token['oauth_token_secret'])
+    print()
+
+    # Step 2: Redirect to the provider. Since this is a CLI script we do not
+    # redirect. In a web application you would redirect the user to the URL
+    # below.
+
+    user_auth_url = ("%s?oauth_token=%s" % (authorize_url, request_token['oauth_token']))
+
+    print("Go to the following link in your browser:")
+    print(user_auth_url)
+    print()
+
+    return user_auth_url
+
+def access_token(config_parameters, accepted, request_token):
+    if accepted != True:
+        return
+
+    consumer_key = config_parameters["consumer_key"]
+    consumer_secret = config_parameters["consumer_secret"]
+
+    consumer = oauth.Consumer(consumer_key, consumer_secret)
+
+    # Step 3: Once the consumer has redirected the user back to the oauth_callback
+    # URL you can request the access token the user has approved. You use the
+    # request token to sign this request. After this is done you throw away the
+    # request token and use the access token returned. You should store this
+    # access token somewhere safe, like a database, for future use.
+    token = oauth.Token(request_token['oauth_token'],
+                        request_token['oauth_token_secret'])
+
+    # token.set_verifier(oauth_verifier)
+    client = oauth.Client(consumer, token)
+    client.set_signature_method(SignatureMethod_RSA_SHA1())
+
+    resp, content = client.request(access_token_url, "POST")
+    access_token = dict(urllib.parse.parse_qsl(content))
+    access_token = {y.decode('ascii'): access_token.get(y).decode('ascii') for y in access_token.keys()}
+
+    print("Access Token:")
+    print("    - oauth_token        = %s" % access_token['oauth_token'])
+    print("    - oauth_token_secret = %s" % access_token['oauth_token_secret'])
+    print()
+    print("You may now access protected resources using the access tokens above.")
+    print()
+
+    # Now lets try to access the same issue again with the access token. We should get a 200!
+    accessToken = oauth.Token(access_token['oauth_token'], access_token['oauth_token_secret'])
+    client = oauth.Client(consumer, accessToken)
+    client.set_signature_method(SignatureMethod_RSA_SHA1())
+
+    resp, content = client.request(data_url, "GET")
+    if resp['status'] != '200':
+        raise Exception("Should have access!")
 
 if __name__ == "__main__":
 
@@ -86,15 +183,13 @@ if __name__ == "__main__":
     if resp['status'] != '404':
         raise Exception(resp['status'] + ": Should have no access!")
 
-    # consumer = oauth.Consumer(consumer_key, consumer_secret)
-    # client = oauth.Client(consumer)
     client.set_signature_method(SignatureMethod_RSA_SHA1())
 
     # Step 1: Get a request token. This is a temporary token that is used for
     # having the user authorize an access token and to sign the request to obtain
     # said access token.
 
-    print("request_token_url: " + request_token_url + '\n')
+    # print("request_token_url: " + request_token_url + '\n')
     resp, content = client.request(request_token_url, "POST")
     if resp['status'] != '200':
         raise Exception("Invalid response %s: %s" % (resp['status'], content))
